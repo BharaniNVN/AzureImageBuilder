@@ -1,0 +1,58 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+#trigger:
+#- master
+
+trigger : none
+pr : none
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+- name: Location
+  value: 'East US'
+- name: ResourceGroup
+  value: 'AIB-SIG-RG'
+- name: ImageTemplateName
+  value: 'win10-multi-session-template'
+
+steps:
+    - task: AzureResourceManagerTemplateDeployment@3
+      displayName: "Deploy Template"
+      continueOnError: true
+      inputs:
+        deploymentScope: 'Resource Group'
+        azureResourceManagerConnection: 'AIB-Connection'
+        subscriptionId: '96723377-c8ea-4791-bb4b-f35e23906784'
+        action: 'Create Or Update Resource Group'
+        resourceGroupName: '$(ResourceGroup)'
+        location: '$(Location)'
+        templateLocation: 'Linked artifact'
+        csmFile: 'armTemplateWinSIG.json'
+        csmParametersFile: 'armTemplateWinSIG.parameters.json'
+        deploymentMode: 'Incremental'
+    - task: AzurePowerShell@5
+      displayName: "Install Az.ImageBuilder"
+      inputs:
+        azureSubscription: 'AIB-Connection'
+        ScriptType: 'InlineScript'
+        Inline: 'Install-Module -name Az.ImageBuilder -AllowPrerelease -Force -Scope CurrentUser'
+        azurePowerShellVersion: 'LatestVersion'
+    - task: AzurePowerShell@5
+      displayName: "Build Image"
+      inputs:
+        azureSubscription: 'AIB-Connection'
+        ScriptType: 'InlineScript'
+        Inline: 'Start-AzImageBuilderTemplate -ResourceGroupName $(ResourceGroup) -Name $(ImageTemplateName)'
+        azurePowerShellVersion: 'LatestVersion'
+    - task: AzurePowerShell@5
+      displayName: "Remove Template"
+      inputs:
+        azureSubscription: 'AIB-Connection'
+        ScriptType: 'InlineScript'
+        Inline: 'remove-AzImageBuilderTemplate -ImageTemplateName $(ImageTemplateName) -ResourceGroupName $(ResourceGroup)'
+        azurePowerShellVersion: 'LatestVersion'

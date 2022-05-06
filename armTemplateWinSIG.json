@@ -1,0 +1,108 @@
+{
+    "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+      "imageTemplateName": {
+        "type": "string"
+        },
+        "api-version": {
+          "type": "string"
+        },
+        "svclocation": {
+            "type": "string"
+        }
+    },
+    
+    "variables": {
+    },
+
+
+    "resources": [
+      {
+        "name": "[parameters('imageTemplateName')]",
+        "type": "Microsoft.VirtualMachineImages/imageTemplates",
+        "apiVersion": "[parameters('api-version')]",
+        "location": "[parameters('svclocation')]",
+        "dependsOn": [],
+        "tags": {
+            "imagebuilderTemplate": "AzureImageBuilderSIG",
+            "userIdentity": "enabled"
+                },
+            "identity": {
+                "type": "UserAssigned",
+                        "userAssignedIdentities": {
+                        "/subscriptions/96723377-c8ea-4791-bb4b-f35e23906784/resourcegroups/AIB-SIG-RG/providers/Microsoft.ManagedIdentity/userAssignedIdentities/AIBidentity1646753046": {}
+                            
+                    }
+                    },
+        
+        "properties": {
+            "buildTimeoutInMinutes" : 100,
+
+            "vmProfile": 
+                    {
+                    "vmSize": "Standard_D1_v2",
+                    "osDiskSizeGB": 127
+                    },
+        
+            "source": {
+                "type": "PlatformImage",
+                    "publisher": "MicrosoftWindowsDesktop",
+                    "offer": "office-365",
+                    "sku": "21h1-evd-o365pp",
+                    "version": "latest"
+                
+            },
+            "customize": [
+
+                {
+                    "type": "PowerShell",
+                    "name": "GetAzCopy",
+                    "inline": [
+                      "New-Item -Type Directory -Path 'c:\\' -Name temp",
+                      "invoke-webrequest -uri 'https://aka.ms/downloadazcopy-v10-windows' -OutFile 'c:\\temp\\azcopy.zip'",
+                      "Expand-Archive 'c:\\temp\\azcopy.zip' 'c:\\temp'",
+                      "copy-item 'C:\\temp\\azcopy_windows_amd64_*\\azcopy.exe\\' -Destination 'c:\\temp'"
+                    ]
+                  }
+            ],
+            "distribute": 
+            [
+                {   
+                    "type": "SharedImage",
+                    "galleryImageId": "/subscriptions/96723377-c8ea-4791-bb4b-f35e23906784/resourceGroups/AIB-SIG-RG/providers/Microsoft.Compute/galleries/AIGSharedImageGallery/images/win-multisession-image",
+                    "runOutputName": "win10-multi-session",
+                    "artifactTags": {
+                        "source": "azureVmImageBuilder",
+                        "baseosimg": "Windows Multisession"
+                    },
+                    "replicationRegions": [
+                      "eastus",
+                      "eastus2"
+                    ]
+                }
+            ]
+            }
+        }
+
+    
+    ]
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
